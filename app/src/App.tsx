@@ -4,6 +4,7 @@ import { WalletModalProvider, WalletMultiButton } from '@solana/wallet-adapter-r
 import { PhantomWalletAdapter } from '@solana/wallet-adapter-wallets';
 import { clusterApiUrl } from '@solana/web3.js';
 import { getProgram } from './solana';
+import { Analytics } from '@vercel/analytics/react';
 
 import '@solana/wallet-adapter-react-ui/styles.css';
 
@@ -46,6 +47,7 @@ export default function App() {
       <WalletProvider wallets={wallets} autoConnect>
         <WalletModalProvider>
           <MainContent />
+          <Analytics />
         </WalletModalProvider>
       </WalletProvider>
     </ConnectionProvider>
