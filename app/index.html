@@ -1,13 +1,407 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>app</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Soldiery — Omerta Row</title>
+<meta name="description" content="Soldiery. The coin of Omerta Row. Access, drops, and the vote.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Barlow+Condensed:wght@300;400;500&family=IBM+Plex+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:        #0A0203;
+    --blood-deep: #43060A;
+    --blood:      #6E0B10;
+    --artery:     #A5121A;
+    --gold:       #C9A227;
+    --gold-lit:   #F0DC9A;
+    --gold-dim:   #8A6E1B;
+    --bone:       #E4D9C6;
+
+    --shell: min(1080px, 90vw);
+  }
+
+  *{ box-sizing:border-box; margin:0; padding:0; }
+
+  html{ scroll-behavior:smooth; }
+
+  body{
+    min-height:100vh;
+    background:var(--ink);
+    color:var(--bone);
+    font-family:'Barlow Condensed', system-ui, sans-serif;
+    font-weight:300;
+    font-size:clamp(16px, 1.4vw, 19px);
+    letter-spacing:.02em;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+
+  /* ---- the blood field ---- */
+  .field{
+    position:fixed;
+    inset:0;
+    z-index:-2;
+    background:
+      radial-gradient(120% 80% at 50% 12%, var(--blood) 0%, var(--blood-deep) 38%, var(--ink) 78%);
+  }
+  .field::after{
+    content:'';
+    position:absolute;
+    inset:0;
+    background:radial-gradient(60% 45% at 50% 10%, rgba(165,18,26,.55), transparent 70%);
+    animation:pulse 9s ease-in-out infinite;
+  }
+  @keyframes pulse{
+    0%,100%{ opacity:.35; }
+    50%    { opacity:.75; }
+  }
+
+  /* grain, so the red reads as pigment and not as a CSS gradient */
+  .grain{
+    position:fixed;
+    inset:-50%;
+    z-index:-1;
+    opacity:.11;
+    pointer-events:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* ---- gold ---- */
+  .gold{
+    background:linear-gradient(176deg, var(--gold-lit) 4%, var(--gold) 42%, var(--gold-dim) 74%, var(--gold-lit) 100%);
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+  }
+
+  .shell{ width:var(--shell); margin-inline:auto; }
+
+  /* ---- hero ---- */
+  header{
+    min-height:100svh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    padding:6rem 0 4rem;
+  }
+
+  /* ---- the struck coin ---- */
+  .coin-stage{ perspective:1400px; }
+  .coin{
+    width:clamp(150px, 21vw, 250px);
+    aspect-ratio:1/1;
+    position:relative;
+    transform-style:preserve-3d;
+    border:0; padding:0; background:none; cursor:pointer;
+    animation:coinFloat 6.5s ease-in-out infinite;
+    transition:transform 1s cubic-bezier(.2,.7,.2,1), filter .4s ease;
+    filter:drop-shadow(0 20px 34px rgba(0,0,0,.72));
+  }
+  .coin:hover{
+    filter:drop-shadow(0 24px 40px rgba(0,0,0,.78))
+           drop-shadow(0 0 30px rgba(201,162,39,.42));
+  }
+  .coin.flipped{ transform:rotateY(180deg); }
+  .coin-face{
+    position:absolute; inset:0;
+    backface-visibility:hidden;
+    background-size:contain; background-repeat:no-repeat; background-position:center;
+  }
+  .coin-face--back{ transform:rotateY(180deg); }
+  .coin-sheen{
+    position:absolute; inset:0; border-radius:50%;
+    pointer-events:none; mix-blend-mode:screen;
+    background:linear-gradient(115deg, transparent 34%, rgba(240,220,154,.20) 46%,
+      rgba(255,255,255,.30) 50%, rgba(240,220,154,.18) 54%, transparent 66%);
+    background-size:280% 280%;
+    animation:coinSheen 7.5s linear infinite;
+  }
+  @keyframes coinSheen{ 0%{ background-position:130% 0; } 100%{ background-position:-30% 0; } }
+  @keyframes coinFloat{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-13px); } }
+  .coin-hint{
+    margin-top:1.1rem;
+    font-family:'Cinzel', serif;
+    font-size:.6rem;
+    letter-spacing:.4em;
+    text-indent:.4em;
+    text-transform:uppercase;
+    color:rgba(201,162,39,.55);
+  }
+
+  .eyebrow{
+    margin-top:2.1rem;
+    font-family:'Cinzel', serif;
+    font-weight:500;
+    font-size:.72rem;
+    letter-spacing:.62em;
+    text-indent:.62em;
+    color:var(--gold);
+    opacity:.8;
+  }
+
+  h1{
+    font-family:'Cinzel', serif;
+    font-weight:900;
+    font-size:clamp(3.4rem, 15vw, 10.5rem);
+    line-height:.9;
+    letter-spacing:.04em;
+    text-indent:.04em;
+    margin:.6rem 0 0;
+    filter:drop-shadow(0 2px 0 rgba(0,0,0,.55)) drop-shadow(0 0 34px rgba(201,162,39,.18));
+  }
+
+  .rule{
+    display:flex;
+    align-items:center;
+    gap:1rem;
+    margin:1.6rem auto 0;
+    width:min(420px, 78vw);
+    color:var(--gold);
+  }
+  .rule::before, .rule::after{
+    content:'';
+    flex:1;
+    height:1px;
+    background:linear-gradient(90deg, transparent, var(--gold-dim), transparent);
+  }
+  .rule span{ font-size:.7rem; letter-spacing:.4em; text-indent:.4em; }
+
+  .creed{
+    margin:1.5rem auto 0;
+    max-width:34ch;
+    font-size:1.12rem;
+    line-height:1.65;
+    color:rgba(228,217,198,.82);
+  }
+
+  .actions{
+    display:flex;
+    flex-wrap:wrap;
+    gap:.9rem;
+    justify-content:center;
+    margin-top:2.6rem;
+  }
+
+  .btn{
+    font-family:'Cinzel', serif;
+    font-weight:700;
+    font-size:.74rem;
+    letter-spacing:.24em;
+    text-indent:.24em;
+    text-decoration:none;
+    padding:1.05rem 2.2rem;
+    border:1px solid var(--gold-dim);
+    color:var(--gold-lit);
+    background:rgba(10,2,3,.42);
+    transition:background .3s ease, border-color .3s ease, transform .3s ease;
+  }
+  .btn:hover{ background:rgba(201,162,39,.12); border-color:var(--gold); transform:translateY(-2px); }
+  .btn--solid{ background:var(--gold); color:#2A0508; border-color:var(--gold); }
+  .btn--solid:hover{ background:var(--gold-lit); }
+
+  /* ---- contract ---- */
+  .contract{
+    margin:3.4rem auto 0;
+    display:inline-flex;
+    align-items:center;
+    gap:.9rem;
+    padding:.7rem .7rem .7rem 1.15rem;
+    border:1px solid rgba(201,162,39,.28);
+    background:rgba(10,2,3,.5);
+    max-width:92vw;
+  }
+  .contract code{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:.76rem;
+    color:rgba(228,217,198,.72);
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .copy{
+    font-family:'Barlow Condensed', sans-serif;
+    font-size:.72rem;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    padding:.5rem .85rem;
+    border:1px solid rgba(201,162,39,.35);
+    background:none;
+    color:var(--gold);
+    cursor:pointer;
+    transition:background .25s ease;
+    white-space:nowrap;
+  }
+  .copy:hover{ background:rgba(201,162,39,.14); }
+
+  /* ---- the three stripes ---- */
+  .articles{ padding:clamp(5rem, 12vw, 9rem) 0; }
+
+  .articles h2{
+    font-family:'Cinzel', serif;
+    font-weight:500;
+    font-size:.72rem;
+    letter-spacing:.52em;
+    text-indent:.52em;
+    text-align:center;
+    color:var(--gold);
+    opacity:.75;
+    margin-bottom:3.6rem;
+  }
+
+  .stripes{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(230px, 1fr));
+    gap:1px;
+    background:rgba(201,162,39,.2);
+    border:1px solid rgba(201,162,39,.2);
+  }
+
+  .stripe{
+    background:rgba(10,2,3,.55);
+    padding:2.6rem 1.9rem 2.9rem;
+    transition:background .35s ease;
+  }
+  .stripe:hover{ background:rgba(67,6,10,.6); }
+
+  .chev{ width:34px; height:auto; color:var(--gold); display:block; }
+
+  .stripe h3{
+    font-family:'Cinzel', serif;
+    font-weight:700;
+    font-size:1.02rem;
+    letter-spacing:.16em;
+    text-indent:.16em;
+    color:var(--gold-lit);
+    margin:1.5rem 0 .8rem;
+  }
+  .stripe p{ line-height:1.7; color:rgba(228,217,198,.72); }
+
+  /* ---- footer ---- */
+  footer{
+    border-top:1px solid rgba(201,162,39,.18);
+    padding:2.4rem 0 3.2rem;
+    text-align:center;
+  }
+  footer p{
+    font-size:.82rem;
+    letter-spacing:.08em;
+    color:rgba(228,217,198,.45);
+    max-width:46ch;
+    margin-inline:auto;
+    line-height:1.7;
+  }
+  footer .mark{
+    font-family:'Cinzel', serif;
+    font-size:.68rem;
+    letter-spacing:.44em;
+    text-indent:.44em;
+    color:var(--gold);
+    opacity:.7;
+    margin-bottom:1rem;
+  }
+
+  a:focus-visible, button:focus-visible{
+    outline:2px solid var(--gold-lit);
+    outline-offset:3px;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *, *::after{ animation:none !important; transition:none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="field"></div>
+<div class="grain"></div>
+
+<header class="shell">
+  <!-- signature: the struck coin -->
+  <div class="coin-stage">
+    <button class="coin" id="coin" type="button" aria-label="Flip the Soldiery coin">
+      <span class="coin-face coin-face--front" style="background-image:url('/soldiery-front.png')">
+        <span class="coin-sheen"></span>
+      </span>
+      <span class="coin-face coin-face--back" style="background-image:url('/soldiery-back.png')">
+        <span class="coin-sheen"></span>
+      </span>
+    </button>
+    <p class="coin-hint">Flip it</p>
+  </div>
+
+  <p class="eyebrow">Omerta Row</p>
+  <h1 class="gold">Soldiery</h1>
+
+  <div class="rule"><span>THE COIN OF THE ROW</span></div>
+
+  <p class="creed">One coin, struck flat and equal for every artist on the roster. No claim, no promise — a key, and the right to speak.</p>
+
+  <div class="actions">
+    <a class="btn btn--solid" href="#" rel="noopener">Get Soldiery</a>
+    <a class="btn" href="#articles">Read the terms</a>
+  </div>
+
+  <div class="contract">
+    <code id="ca">0x0000000000000000000000000000000000000000</code>
+    <button class="copy" id="copyBtn" type="button">Copy</button>
+  </div>
+</header>
+
+<main class="shell articles" id="articles">
+  <h2>What the coin carries</h2>
+
+  <div class="stripes">
+    <article class="stripe">
+      <svg class="chev" viewBox="0 0 40 20" fill="none" stroke="currentColor" stroke-width="3"><path d="M2 18 L20 3 L38 18"/></svg>
+      <h3>Access</h3>
+      <p>The room before it opens. Sessions, listening parties, and the private channels where the row actually talks.</p>
+    </article>
+
+    <article class="stripe">
+      <svg class="chev" viewBox="0 0 40 34" fill="none" stroke="currentColor" stroke-width="3"><path d="M2 18 L20 3 L38 18"/><path d="M2 32 L20 17 L38 32"/></svg>
+      <h3>Drops</h3>
+      <p>First claim on limited runs — vinyl, merch, and pressings that never reach the shelf. Holders queue first.</p>
+    </article>
+
+    <article class="stripe">
+      <svg class="chev" viewBox="0 0 40 48" fill="none" stroke="currentColor" stroke-width="3"><path d="M2 18 L20 3 L38 18"/><path d="M2 32 L20 17 L38 32"/><path d="M2 46 L20 31 L38 46"/></svg>
+      <h3>The vote</h3>
+      <p>Singles, artwork, tour cities, who gets signed next. Hold the coin, hold a say in what the label does.</p>
+    </article>
+  </div>
+</main>
+
+<footer class="shell">
+  <p class="mark">OMERTA ROW</p>
+  <p>Soldiery is a utility token. It carries access, priority, and voting rights only — it is not a share, and it grants no claim on revenue, royalties, or masters.</p>
+</footer>
+
+<script>
+  const btn = document.getElementById('copyBtn');
+  btn.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(document.getElementById('ca').textContent.trim());
+      btn.textContent = 'Copied';
+      setTimeout(() => btn.textContent = 'Copy', 1800);
+    } catch {
+      btn.textContent = 'Press Ctrl+C';
+      setTimeout(() => btn.textContent = 'Copy', 2400);
+    }
+  });
+
+  /* flip the coin */
+  (function(){
+    var coin = document.getElementById('coin');
+    if(!coin) return;
+    coin.addEventListener('click', function(){
+      coin.classList.toggle('flipped');
+    });
+  })();
+</script>
+
+</body>
 </html>
